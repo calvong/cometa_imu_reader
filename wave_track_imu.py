@@ -3,6 +3,8 @@ import clr
 import os
 import numpy as np
 import time
+import copy
+
 
 current_script_path = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(current_script_path + "/Cometa_SDK/")
@@ -34,6 +36,7 @@ class WaveTrackIMU(DaqSystem):
 
         # create empty data array
         self.data = None
+        self._init_data()
 
         self.buf = DataSyncBuffer()
         self.daq.StateChanged += daq_state_changed_handler
@@ -59,16 +62,18 @@ class WaveTrackIMU(DaqSystem):
     def stop_capturing(self):
         self.daq.StopCapturing()
 
-        n_pop = len(imu_data) % self.n_sensors
-        for i in range(n_pop):
-            imu_data.pop()
+        self.data = imu_data
 
-        n_interval = len(imu_data)
-        for i in range(n_interval):
-            if i == 0:
-                self.data = imu_data[0]
-            else:
-                self.data.ax.append(imu_data[i].ax)
+        # n_pop = len(imu_data) % self.n_sensors
+        # for i in range(n_pop):
+        #     imu_data.pop()
+        #
+        # n_interval = len(imu_data)
+        # for i in range(n_interval):
+        #     if i == 0:
+        #         self.data = imu_data[0]
+        #     else:
+        #         self.data.ax.append(imu_data[i].ax)
 
         print("Stopped capturing Cometa IMU data")
 
@@ -207,6 +212,24 @@ class WaveTrackIMU(DaqSystem):
 
         return version
 
+    def _init_data(self):
+        global imu_data
+
+        raw_data = ImuDataType()
+        raw_data.ax = []
+        raw_data.ay = []
+        raw_data.az = []
+        raw_data.gx = []
+        raw_data.gy = []
+        raw_data.gz = []
+        raw_data.qw = []
+        raw_data.qx = []
+        raw_data.qy = []
+        raw_data.qz = []
+
+        for n in range(self.n_sensors):
+            imu_data.append(copy.deepcopy(raw_data))
+
     class ImuAcqType:
         """IMU acquisition type enum for CaptureConfiguration
         """
@@ -282,37 +305,25 @@ def data_available_handler(source, args):
     global imu_data
 
     n_sensors = 16  # TODO: find a better to get this number?
-    raw_data = ImuDataType()
-    raw_data.ax = []
-    raw_data.ay = []
-    raw_data.az = []
-    raw_data.gx = []
-    raw_data.gy = []
-    raw_data.gz = []
-    raw_data.qw = []
-    raw_data.qx = []
-    raw_data.qy = []
-    raw_data.qz = []
 
     print("hi once")
 
     # using ScanNumber instead of SamplesNumber for some reasons...
     for n in range(n_sensors):
         for i in range(args.ScanNumber):
-            raw_data.qw.append(args.ImuSamples[n, 0, i])
-            raw_data.qx.append(args.ImuSamples[n, 1, i])
-            raw_data.qy.append(args.ImuSamples[n, 2, i])
-            raw_data.qz.append(args.ImuSamples[n, 3, i])
+            imu_data[n].qw.append(args.ImuSamples[n, 0, i])
+            imu_data[n].qx.append(args.ImuSamples[n, 1, i])
+            imu_data[n].qy.append(args.ImuSamples[n, 2, i])
+            imu_data[n].qz.append(args.ImuSamples[n, 3, i])
 
-            raw_data.ax.append(args.AccelerometerSamples[n, 0, i])
-            raw_data.ay.append(args.AccelerometerSamples[n, 1, i])
-            raw_data.az.append(args.AccelerometerSamples[n, 2, i])
+            imu_data[n].ax.append(args.AccelerometerSamples[n, 0, i])
+            imu_data[n].ay.append(args.AccelerometerSamples[n, 1, i])
+            imu_data[n].az.append(args.AccelerometerSamples[n, 2, i])
 
-            raw_data.gx.append(args.GyroscopeSamples[n, 0, i])
-            raw_data.gy.append(args.GyroscopeSamples[n, 1, i])
-            raw_data.gz.append(args.GyroscopeSamples[n, 2, i])
+            imu_data[n].gx.append(args.GyroscopeSamples[n, 0, i])
+            imu_data[n].gy.append(args.GyroscopeSamples[n, 1, i])
+            imu_data[n].gz.append(args.GyroscopeSamples[n, 2, i])
 
-            # print(args.ImuSamples[8, 1, i])
-        imu_data.append(raw_data)
+            print(args.ImuSamples[8, 1, i])
 
 

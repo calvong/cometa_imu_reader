@@ -22,6 +22,6 @@ if __name__ == '__main__':
     imu.stop_capturing()
 
     print(len(imu.data))
-    # plt.figure()
-    # plt.plot(imu.data[8].ax)
-    # plt.show()
+    plt.figure()
+    plt.plot(imu.data[8].qx)
+    plt.show()
